@@ -1,6 +1,7 @@
 import re
 import time
 from typing import Dict
+import aiohttp  # Tambahan untuk request manual
 
 from mediaflow_proxy.extractors.base import BaseExtractor, ExtractorError
 
@@ -11,6 +12,14 @@ class DoodStreamExtractor(BaseExtractor):
     def __init__(self, request_headers: dict):
         super().__init__(request_headers)
         self.base_url = "https://d000d.com"
+
+    async def _make_request(self, url, headers=None):
+        """Override untuk abaikan SSL verification."""
+        connector = aiohttp.TCPConnector(ssl=False)
+        async with aiohttp.ClientSession(connector=connector, headers=headers) as session:
+            async with session.get(url) as response:
+                text = await response.text()
+                return type("Response", (), {"text": text})
 
     async def extract(self, url: str, **kwargs) -> Dict[str, str]:
         """Extract DoodStream URL."""
