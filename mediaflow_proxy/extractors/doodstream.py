@@ -11,7 +11,7 @@ class DoodStreamExtractor(BaseExtractor):
 
     def __init__(self, request_headers: dict):
         super().__init__(request_headers)
-        self.base_url = "https://d000d.com"
+        self.base_url = "https://vide0.net"
 
     async def _make_request(self, url, headers=None):
         """Override untuk abaikan SSL verification."""
