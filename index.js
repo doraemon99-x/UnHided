@@ -4,19 +4,19 @@ import cors from 'cors';
 
 const app = express();
 
-// ✅ Global CORS middleware
+// Global CORS middleware dan preflight support
 app.use(cors());
-app.options('*', cors()); // preflight support
+app.options('*', cors());
 
-// ✅ Middleware manual untuk memastikan CORS header selalu diset
+// Middleware tambahan untuk header CORS manual (opsional)
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*'); // ubah jika perlu
+  res.setHeader('Access-Control-Allow-Origin', '*'); // Ganti '*' dengan domain spesifik jika perlu
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, api_password');
   next();
 });
 
-// ✅ /proxy/hls/manifest.m3u8
+// Proxy endpoint untuk manifest.m3u8
 app.get('/proxy/hls/manifest.m3u8', async (req, res) => {
   const url = req.query.d;
   const password = req.query.api_password || req.headers['api_password'];
@@ -27,9 +27,7 @@ app.get('/proxy/hls/manifest.m3u8', async (req, res) => {
 
   try {
     const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0'
-      }
+      headers: { 'User-Agent': 'Mozilla/5.0' }
     });
 
     if (!response.ok) {
@@ -38,10 +36,9 @@ app.get('/proxy/hls/manifest.m3u8', async (req, res) => {
 
     let body = await response.text();
 
-    // Rewrite .ts or segment URLs to go through our proxy
-    body = body.replace(/^(?!#)(.*\.ts)/gm, (match) => {
-      const segmentUrl = new URL(match, url).href;
-      return `/proxy/hls/segment.ts?d=${encodeURIComponent(segmentUrl)}&api_password=test`;
+    // Rewrite URL segmen .ts yang absolut agar melalui proxy
+    body = body.replace(/^(?!#)(https?:\/\/.*?\.ts)/gm, (match) => {
+      return `/proxy/hls/segment.ts?d=${encodeURIComponent(match)}&api_password=test`;
     });
 
     res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
@@ -53,7 +50,7 @@ app.get('/proxy/hls/manifest.m3u8', async (req, res) => {
   }
 });
 
-// ✅ /proxy/hls/segment.ts
+// Proxy endpoint untuk segmen .ts
 app.get('/proxy/hls/segment.ts', async (req, res) => {
   const url = req.query.d;
   const password = req.query.api_password || req.headers['api_password'];
@@ -64,9 +61,7 @@ app.get('/proxy/hls/segment.ts', async (req, res) => {
 
   try {
     const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0'
-      }
+      headers: { 'User-Agent': 'Mozilla/5.0' }
     });
 
     if (!response.ok) {
