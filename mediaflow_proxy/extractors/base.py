@@ -4,7 +4,7 @@ from typing import Dict, Optional, Any
 import httpx
 
 from mediaflow_proxy.configs import settings
-from mediaflow_proxy.utils.http_utils import create_httpx_client
+from mediaflow_proxy.utils.http_utils import create_httpx_client, DownloadError
 
 
 class ExtractorError(Exception):
@@ -29,7 +29,7 @@ class BaseExtractor(ABC):
         """Make HTTP request with error handling."""
         try:
             async with create_httpx_client() as client:
-                request_headers = self.base_headers
+                request_headers = self.base_headers.copy()
                 request_headers.update(headers or {})
                 response = await client.request(
                     method,
@@ -39,10 +39,10 @@ class BaseExtractor(ABC):
                 )
                 response.raise_for_status()
                 return response
-        except httpx.HTTPError as e:
-            raise ExtractorError(f"HTTP request failed: {str(e)}")
+        except httpx.HTTPStatusError as e:
+            raise DownloadError(e.response.status_code, f"HTTP error {e.response.status_code} while requesting {url}")
         except Exception as e:
-            raise ExtractorError(f"Request failed: {str(e)}")
+            raise ExtractorError(f"Request failed for URL {url}: {str(e)}")
 
     @abstractmethod
     async def extract(self, url: str, **kwargs) -> Dict[str, Any]:
